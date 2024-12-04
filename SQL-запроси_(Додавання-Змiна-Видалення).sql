@@ -1,40 +1,38 @@
--- Загальна вартість процедур для конкретного пацієнта
-SELECT SUM(p.cost) AS total_procedure_cost
-FROM patient_procedures pp
-JOIN procedures p ON pp.procedure_id = p.id
-WHERE pp.patient_id = 1;
-
--- Загальна вартість усіх послуг для конкретного пацієнта
-SELECT SUM(s.cost) AS total_service_cost
-FROM patient_services ps
-JOIN services s ON ps.service_id = s.id
-WHERE ps.patient_id = 1;
-
--- Загальна вартість усіх послуг та процедур
-SELECT
-	(
-	SELECT SUM(s.cost) AS total_service_cost
-	FROM patient_services ps
-	JOIN services s ON ps.service_id = s.id
-	WHERE ps.patient_id = 1
-	) + (
-	SELECT SUM(p.cost) AS total_procedure_cost
-	FROM patient_procedures pp
-	JOIN procedures p ON pp.procedure_id = p.id
-	WHERE pp.patient_id = 1
-	) AS total_cost;
-
-
 -- -- Основнi таблицi -- --
+
+-- ТАБЛИЦЯ `bills` --
+-- Команда оновлює суму платежу та статус для пацієнта 
+-- patient - змінна, до якої пишеш айді).
+-- Цю комаду треба використовувати коли для пацієнта з ID = n 
+-- додалися/змінилися процедури/послуги (таблиці: PATIENT_PROCEDURES, PATIENT_SERVICES).
+SET @patient = 1;
+UPDATE bills
+SET amount = (
+		IFNULL((
+        SELECT SUM(s.cost) AS total_service_cost
+        FROM patient_services ps
+        JOIN services s ON ps.service_id = s.id
+        WHERE ps.patient_id = @patient
+		), 0.00) + IFNULL((
+        SELECT SUM(p.cost) AS total_procedure_cost
+        FROM patient_procedures pp
+        JOIN procedures p ON pp.procedure_id = p.id
+        WHERE pp.patient_id = @patient
+		), 0.00)
+	),
+	status = 'Не оплачено'
+WHERE patient_id = @patient;
+
+
 
 -- ТАБЛИЦЯ `patients` --
 -- Додавання запису
--- > при додаваннi пацієнта до бази даних створюється його нова мед-карта
+-- > при додаваннi пацієнта до бази даних створюється його новi мед-карта та рахунок
 INSERT INTO patients (first_name, last_name, birth_date, phone)
 	VALUES ('Степан', 'Гузлiвський', '1995-10-2', '380658893121');
 
 -- Видалення запису по ID
--- > при видаленні пацієнта з бази даних його медкарта теж видаляється
+-- > при видаленні пацієнта з бази даних його медкарта та рахунок теж видаляються
 DELETE FROM patients
 WHERE id = 1;
 
@@ -237,5 +235,3 @@ WHERE medical_card_id = 4 AND diagnosis_id = 1;
 -- Видалення рецепту з мед-карти пацієнта за ID мед-карти та рецепту
 DELETE FROM medical_card_diagnoses
 WHERE medical_card_id = 4 AND diagnosis_id = 1;
-
-

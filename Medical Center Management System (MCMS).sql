@@ -132,7 +132,7 @@ CREATE TABLE `patient_procedures` (
 -- Рахунки
 CREATE TABLE `bills` (
     `id` INTEGER NOT NULL AUTO_INCREMENT UNIQUE,
-    `patient_id` INTEGER NOT NULL,
+    `patient_id` INTEGER NOT NULL UNIQUE,
     `amount` DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
     `status` ENUM('Не оплачено', 'Оплачено') NOT NULL,
     PRIMARY KEY(`id`),
@@ -159,6 +159,7 @@ CREATE TABLE `medical_card_excharge` (
 
 -- Трiггери
 DROP TRIGGER IF EXISTS add_med_cart_for_patient;
+DROP TRIGGER IF EXISTS add_bills_for_patient;
 
 DELIMITER $$
 
@@ -168,6 +169,18 @@ FOR EACH ROW
 BEGIN
     INSERT INTO medical_cards (patient_id)
     VALUES (NEW.id);
+END $$
+
+CREATE TRIGGER add_bills_for_patient
+AFTER INSERT ON patients
+FOR EACH ROW
+BEGIN
+	INSERT INTO bills (patient_id, amount, status)
+	VALUES (
+		NEW.id,
+		0.00,
+		'Оплачено'
+	);
 END $$
 
 DELIMITER ;
